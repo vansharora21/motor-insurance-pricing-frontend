@@ -22,21 +22,27 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 /** Score a single policy through the Next.js API route. */
-export async function predictSingle(policy: PolicyInput): Promise<SinglePredictionResponse> {
+export async function predictSingle(
+  policy: PolicyInput,
+  consent = false
+): Promise<SinglePredictionResponse> {
   const response = await fetch(`${API_BASE}/predict`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ policy }),
+    body: JSON.stringify({ policy, consent }),
   });
   return handleResponse<SinglePredictionResponse>(response);
 }
 
 /** Score a batch of policies through the Next.js API route. */
-export async function predictBatch(policies: PolicyInput[]): Promise<BatchPredictionResponse> {
+export async function predictBatch(
+  policies: PolicyInput[],
+  consent = false
+): Promise<BatchPredictionResponse> {
   const response = await fetch(`${API_BASE}/predict/batch`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ policies }),
+    body: JSON.stringify({ policies, consent }),
   });
   return handleResponse<BatchPredictionResponse>(response);
 }

@@ -40,6 +40,7 @@ function formatEuro(value: number): string {
 
 export default function SingleQuotePage() {
   const [policy, setPolicy] = useState<PolicyInput>(DEFAULT_POLICY);
+  const [consent, setConsent] = useState(false);
   const [result, setResult] = useState<ScoredPolicy | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +55,7 @@ export default function SingleQuotePage() {
     setError(null);
     setResult(null);
     try {
-      const response = await predictSingle(policy);
+      const response = await predictSingle(policy, consent);
       setResult(response.policy);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Prediction failed. Please try again.");
@@ -202,6 +203,19 @@ export default function SingleQuotePage() {
               {error}
             </div>
           )}
+
+          <label className="mt-5 flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+              I agree to my anonymized quote being stored to help improve pricing research.
+              No personal information is collected.
+            </span>
+          </label>
 
           <button
             type="submit"

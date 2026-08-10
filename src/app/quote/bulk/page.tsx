@@ -117,6 +117,7 @@ export default function BulkUploadPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [policies, setPolicies] = useState<PolicyInput[]>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
+  const [consent, setConsent] = useState(false);
   const [result, setResult] = useState<BatchPredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,7 +141,7 @@ export default function BulkUploadPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await predictBatch(policies);
+      const response = await predictBatch(policies, consent);
       setResult(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Batch prediction failed. Please try again.");
@@ -243,6 +244,19 @@ export default function BulkUploadPage() {
             </button>
           </div>
         )}
+
+        <label className="mt-5 flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+            I agree to these anonymized quotes being stored to help improve pricing research.
+            No personal information is collected.
+          </span>
+        </label>
       </div>
 
       {/* Results */}
