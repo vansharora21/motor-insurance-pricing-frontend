@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowRight, CheckCircle, Lightning } from "@phosphor-icons/react";
 import { predictSingle } from "@/lib/api";
 import type { PolicyInput, ScoredPolicy } from "@/lib/types";
 
@@ -28,14 +29,20 @@ const DEFAULT_POLICY: PolicyInput = {
   Region: "Centre",
 };
 
-const RISK_STYLES: Record<string, string> = {
-  Low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  Medium: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  High: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+const RISK_STYLES: Record<string, { badge: string; text: string }> = {
+  Low: { badge: "border-low/30 bg-low/10 text-low", text: "text-low" },
+  Medium: { badge: "border-medium/30 bg-medium/10 text-medium", text: "text-medium" },
+  High: { badge: "border-high/30 bg-high/10 text-high", text: "text-high" },
 };
 
-function formatEuro(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR" }).format(value);
+const INPUT_CLASS =
+  "w-full rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-sm text-text outline-none transition-colors " +
+  "placeholder:text-faint focus:border-accent/60 focus:ring-2 focus:ring-accent/15 hover:border-line-strong";
+
+const LABEL_CLASS = "mono-label mb-2 block text-faint";
+
+function formatINR(value: number): string {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
 }
 
 export default function SingleQuotePage() {
@@ -64,212 +71,245 @@ export default function SingleQuotePage() {
     }
   }
 
+  const risk = result ? RISK_STYLES[result.risk_category] : null;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Single customer quote</h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Enter the policyholder&apos;s details below. The pricing engine will score the policy with
-          the saved frequency and severity models.
+    <div className="mx-auto max-w-6xl px-6 pb-28 pt-36">
+      <div className="mb-12">
+        <p className="mono-label text-accent">Quote · Single</p>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Policyholder details</h1>
+        <p className="mt-3 max-w-[52ch] text-muted">
+          The pricing engine scores the policy with the saved frequency and severity models.
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
-        >
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Exposure (years)</span>
-              <input
-                type="number"
-                min={0.01}
-                max={2.5}
-                step={0.01}
-                value={policy.Exposure}
-                onChange={(e) => update("Exposure", parseFloat(e.target.value) || 0)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Driver age</span>
-              <input
-                type="number"
-                min={18}
-                max={100}
-                value={policy.DrivAge}
-                onChange={(e) => update("DrivAge", parseInt(e.target.value, 10) || 18)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Bonus-Malus</span>
-              <input
-                type="number"
-                min={50}
-                max={350}
-                value={policy.BonusMalus}
-                onChange={(e) => update("BonusMalus", parseInt(e.target.value, 10) || 50)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Vehicle power</span>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={policy.VehPower}
-                onChange={(e) => update("VehPower", parseInt(e.target.value, 10) || 1)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Vehicle age (years)</span>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={policy.VehAge}
-                onChange={(e) => update("VehAge", parseInt(e.target.value, 10) || 0)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Population density</span>
-              <input
-                type="number"
-                min={0}
-                max={27000}
-                value={policy.Density}
-                onChange={(e) => update("Density", parseInt(e.target.value, 10) || 0)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Vehicle brand</span>
-              <select
-                value={policy.VehBrand}
-                onChange={(e) => update("VehBrand", e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              >
-                {BRAND_OPTIONS.map((brand) => (
-                  <option key={brand} value={brand}>{brand}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Fuel type</span>
-              <select
-                value={policy.VehGas}
-                onChange={(e) => update("VehGas", e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              >
-                {GAS_OPTIONS.map((gas) => (
-                  <option key={gas} value={gas}>{gas}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Area</span>
-              <select
-                value={policy.Area}
-                onChange={(e) => update("Area", e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              >
-                {AREA_OPTIONS.map((area) => (
-                  <option key={area} value={area}>{area}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">Region</span>
-              <select
-                value={policy.Region}
-                onChange={(e) => update("Region", e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-              >
-                {REGION_OPTIONS.map((region) => (
-                  <option key={region} value={region}>{region}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {error && (
-            <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-              {error}
+        <form onSubmit={handleSubmit} className="bezel">
+          <div className="bezel-inner p-6 sm:p-8">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="block">
+                <span className={LABEL_CLASS}>Exposure (years)</span>
+                <input
+                  type="number"
+                  min={0.01}
+                  max={2.5}
+                  step={0.01}
+                  value={policy.Exposure}
+                  onChange={(e) => update("Exposure", parseFloat(e.target.value) || 0)}
+                  className={INPUT_CLASS}
+                />
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Driver age</span>
+                <input
+                  type="number"
+                  min={18}
+                  max={100}
+                  value={policy.DrivAge}
+                  onChange={(e) => update("DrivAge", parseInt(e.target.value, 10) || 18)}
+                  className={INPUT_CLASS}
+                />
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Bonus-malus</span>
+                <input
+                  type="number"
+                  min={50}
+                  max={350}
+                  value={policy.BonusMalus}
+                  onChange={(e) => update("BonusMalus", parseInt(e.target.value, 10) || 50)}
+                  className={INPUT_CLASS}
+                />
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Vehicle power</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={policy.VehPower}
+                  onChange={(e) => update("VehPower", parseInt(e.target.value, 10) || 1)}
+                  className={INPUT_CLASS}
+                />
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Vehicle age (years)</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={policy.VehAge}
+                  onChange={(e) => update("VehAge", parseInt(e.target.value, 10) || 0)}
+                  className={INPUT_CLASS}
+                />
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Population density</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={27000}
+                  value={policy.Density}
+                  onChange={(e) => update("Density", parseInt(e.target.value, 10) || 0)}
+                  className={INPUT_CLASS}
+                />
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Vehicle brand</span>
+                <select
+                  value={policy.VehBrand}
+                  onChange={(e) => update("VehBrand", e.target.value)}
+                  className={INPUT_CLASS}
+                >
+                  {BRAND_OPTIONS.map((brand) => (
+                    <option key={brand} value={brand} className="bg-surface-2">
+                      {brand}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Fuel type</span>
+                <select
+                  value={policy.VehGas}
+                  onChange={(e) => update("VehGas", e.target.value)}
+                  className={INPUT_CLASS}
+                >
+                  {GAS_OPTIONS.map((gas) => (
+                    <option key={gas} value={gas} className="bg-surface-2">
+                      {gas}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Area</span>
+                <select
+                  value={policy.Area}
+                  onChange={(e) => update("Area", e.target.value)}
+                  className={INPUT_CLASS}
+                >
+                  {AREA_OPTIONS.map((area) => (
+                    <option key={area} value={area} className="bg-surface-2">
+                      {area}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className={LABEL_CLASS}>Region</span>
+                <select
+                  value={policy.Region}
+                  onChange={(e) => update("Region", e.target.value)}
+                  className={INPUT_CLASS}
+                >
+                  {REGION_OPTIONS.map((region) => (
+                    <option key={region} value={region} className="bg-surface-2">
+                      {region}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-          )}
 
-          <label className="mt-5 flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-              I agree to my anonymized quote being stored to help improve pricing research.
-              No personal information is collected.
-            </span>
-          </label>
+            {error && (
+              <div className="mt-6 rounded-lg border border-high/30 bg-high/10 p-4 text-sm text-high">
+                {error}
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-6 w-full rounded-full bg-blue-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Calculating premium…" : "Predict Premium"}
-          </button>
+            <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-surface-2/60 p-4 transition-colors hover:border-line-strong">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-line-strong bg-surface-2 accent-accent"
+              />
+              <span className="text-xs leading-relaxed text-muted">
+                I agree to my anonymized quote being stored to help improve pricing research.
+                No personal information is collected.
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group mt-6 flex w-full items-center justify-center gap-2.5 rounded-full bg-accent px-6 py-3.5 text-[15px] font-semibold text-ink transition-all hover:bg-accent-strong active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <Lightning size={18} weight="fill" className="animate-pulse" />
+                  Calculating premium…
+                </>
+              ) : (
+                <>
+                  Predict premium
+                  <ArrowRight size={18} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
+                </>
+              )}
+            </button>
+          </div>
         </form>
 
         {/* Result */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          {!result ? (
-            <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center text-zinc-400">
-              <span className="text-4xl">📋</span>
-              <p className="mt-4 max-w-xs text-sm">
-                Fill in the policy attributes and click <strong>Predict Premium</strong> to see the
-                pricing breakdown here.
-              </p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Pricing result</h2>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${RISK_STYLES[result.risk_category]}`}>
-                  {result.risk_category} risk
+        <div className="bezel">
+          <div className="bezel-inner flex min-h-[480px] flex-col p-6 sm:p-8">
+            {!result ? (
+              <div className="flex flex-1 flex-col items-center justify-center text-center">
+                <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-line bg-surface-2 text-faint">
+                  <Lightning size={28} weight="duotone" />
                 </span>
-              </div>
-
-              <div className="mt-6 rounded-xl bg-blue-50 p-6 text-center dark:bg-blue-950">
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Final premium</p>
-                <p className="mt-1 text-4xl font-bold text-blue-700 dark:text-blue-300">
-                  {formatEuro(result.final_premium)}
+                <p className="mt-6 max-w-[30ch] text-sm leading-relaxed text-muted">
+                  Fill in the policy attributes and hit{" "}
+                  <span className="font-semibold text-text">Predict premium</span> — the pricing
+                  breakdown appears here.
                 </p>
-                <p className="mt-1 text-xs text-blue-600/70 dark:text-blue-400/70">per policy term</p>
               </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="mono-label text-faint">Pricing result</p>
+                  {risk && (
+                    <span className={`rounded-full border px-3 py-1 font-mono text-[11px] font-semibold ${risk.badge}`}>
+                      {result.risk_category} risk
+                    </span>
+                  )}
+                </div>
 
-              <dl className="mt-6 space-y-3 text-sm">
-                {[
-                  ["Predicted frequency", `${result.predicted_annual_frequency.toFixed(4)} claims/yr`],
-                  ["Predicted severity", formatEuro(result.predicted_claim_severity)],
-                  ["Expected loss", formatEuro(result.expected_loss)],
-                  ["Pure premium", formatEuro(result.pure_premium)],
-                  ["Technical premium", formatEuro(result.technical_premium)],
-                  ["Risk score", result.risk_score.toFixed(1)],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex justify-between border-b border-zinc-100 pb-2 dark:border-zinc-800">
-                    <dt className="text-zinc-500 dark:text-zinc-400">{label}</dt>
-                    <dd className="font-medium">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
+                <div className="mt-8 rounded-2xl border border-accent/25 bg-accent-dim p-6 text-center">
+                  <p className="mono-label text-accent">Final premium</p>
+                  <p className="mt-2 font-mono text-5xl font-medium tracking-tight text-text">
+                    {formatINR(result.final_premium)}
+                  </p>
+                  <p className="mt-2 font-mono text-xs text-faint">per policy term</p>
+                </div>
+
+                <dl className="mt-8 space-y-3 font-mono text-sm">
+                  {[
+                    ["Predicted frequency", `${result.predicted_annual_frequency.toFixed(4)} claims/yr`],
+                    ["Predicted severity", formatINR(result.predicted_claim_severity)],
+                    ["Expected loss", formatINR(result.expected_loss)],
+                    ["Pure premium", formatINR(result.pure_premium)],
+                    ["Technical premium", formatINR(result.technical_premium)],
+                    ["Risk score", result.risk_score.toFixed(1)],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-center justify-between border-b border-line pb-3 last:border-0">
+                      <dt className="text-faint">{label}</dt>
+                      <dd className="font-semibold text-text">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <div className="mt-8 flex items-center gap-2.5 rounded-lg border border-low/25 bg-low/10 px-4 py-3">
+                  <CheckCircle size={18} weight="duotone" className="shrink-0 text-low" />
+                  <p className="text-xs leading-relaxed text-muted">
+                    Scored by the deployed Poisson + Gamma models on 783,573 policies.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

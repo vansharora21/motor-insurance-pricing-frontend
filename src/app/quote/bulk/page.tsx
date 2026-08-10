@@ -1,6 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle,
+  DownloadSimple,
+  UploadSimple,
+} from "@phosphor-icons/react";
 import { predictBatch } from "@/lib/api";
 import type { BatchPredictionResponse, PolicyInput } from "@/lib/types";
 
@@ -10,13 +16,13 @@ const REQUIRED_COLUMNS = [
 ];
 
 const RISK_STYLES: Record<string, string> = {
-  Low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  Medium: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  High: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+  Low: "border-low/30 bg-low/10 text-low",
+  Medium: "border-medium/30 bg-medium/10 text-medium",
+  High: "border-high/30 bg-high/10 text-high",
 };
 
-function formatEuro(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR" }).format(value);
+function formatINR(value: number): string {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
 }
 
 /** Minimal CSV parser that handles quoted fields and commas inside quotes. */
@@ -181,153 +187,176 @@ export default function BulkUploadPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Bulk upload</h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+    <div className="mx-auto max-w-6xl px-6 pb-28 pt-36">
+      <div className="mb-12">
+        <p className="mono-label text-accent">Quote · Batch</p>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Portfolio upload</h1>
+        <p className="mt-3 max-w-[52ch] text-muted">
           Upload a CSV of policies. Required columns:{" "}
-          <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs dark:bg-zinc-800">
+          <code className="rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-accent">
             Exposure, VehPower, VehAge, DrivAge, BonusMalus, VehBrand, VehGas, Area, Density, Region
           </code>
-          . <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs dark:bg-zinc-800">IDpol</code> is optional.
+          . <code className="rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-accent">IDpol</code> is optional.
         </p>
       </div>
 
       {/* Upload card */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,text/csv"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFile(file);
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full rounded-xl border-2 border-dashed border-zinc-300 p-10 text-center transition-colors hover:border-blue-400 hover:bg-blue-50/50 dark:border-zinc-700 dark:hover:border-blue-600 dark:hover:bg-blue-950/30"
-        >
-          <span className="text-3xl">📁</span>
-          <p className="mt-3 font-medium">{fileName ?? "Click to choose a CSV file"}</p>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {fileName ? "Click again to choose a different file" : "Only .csv files are accepted"}
-          </p>
-        </button>
-
-        {parseErrors.length > 0 && (
-          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-            <p className="font-semibold">CSV issues:</p>
-            <ul className="mt-1 list-inside list-disc">
-              {parseErrors.map((message, index) => (
-                <li key={index}>{message}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {policies.length > 0 && (
-          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              <strong>{policies.length}</strong> valid polic{policies.length === 1 ? "y" : "ies"} parsed
-              {parseErrors.length > 0 && ` · ${parseErrors.length} row(s) skipped`}
-            </p>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading}
-              className="rounded-full bg-blue-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Scoring policies…" : "Score Policies"}
-            </button>
-          </div>
-        )}
-
-        <label className="mt-5 flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="bezel">
+        <div className="bezel-inner p-6 sm:p-8">
           <input
-            type="checkbox"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFile(file);
+            }}
           />
-          <span className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-            I agree to these anonymized quotes being stored to help improve pricing research.
-            No personal information is collected.
-          </span>
-        </label>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="group flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line-strong bg-surface-2/40 px-6 py-14 text-center transition-colors hover:border-accent/50 hover:bg-accent-dim/40"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-surface-2 text-muted transition-colors group-hover:border-accent/40 group-hover:text-accent">
+              <UploadSimple size={26} weight="duotone" />
+            </span>
+            <p className="mt-5 text-base font-semibold text-text">
+              {fileName ?? "Choose a CSV file"}
+            </p>
+            <p className="mt-1.5 font-mono text-xs text-faint">
+              {fileName ? "Click again to choose a different file" : "Only .csv files are accepted"}
+            </p>
+          </button>
+
+          {parseErrors.length > 0 && (
+            <div className="mt-6 rounded-lg border border-medium/30 bg-medium/10 p-4 text-sm text-medium">
+              <p className="font-semibold">CSV issues:</p>
+              <ul className="mt-1.5 list-inside list-disc space-y-0.5">
+                {parseErrors.map((message, index) => (
+                  <li key={index}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {policies.length > 0 && (
+            <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="font-mono text-sm text-muted">
+                <span className="font-semibold text-accent">{policies.length}</span> valid polic
+                {policies.length === 1 ? "y" : "ies"} parsed
+                {parseErrors.length > 0 && (
+                  <span className="text-medium"> · {parseErrors.length} row(s) skipped</span>
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="group inline-flex items-center justify-center gap-2.5 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-ink transition-all hover:bg-accent-strong active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  "Scoring policies…"
+                ) : (
+                  <>
+                    Score policies
+                    <ArrowRight size={16} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-surface-2/60 p-4 transition-colors hover:border-line-strong">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-line-strong bg-surface-2 accent-accent"
+            />
+            <span className="text-xs leading-relaxed text-muted">
+              I agree to these anonymized quotes being stored to help improve pricing research.
+              No personal information is collected.
+            </span>
+          </label>
+        </div>
       </div>
 
-      {/* Results */}
+      {/* Errors */}
       {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+        <div className="mt-6 rounded-lg border border-high/30 bg-high/10 p-4 text-sm text-high">
           {error}
         </div>
       )}
 
+      {/* Results */}
       {result && (
-        <div className="mt-8">
+        <div className="mt-12">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-semibold">Results — {result.summary.total} policies scored</h2>
+            <div>
+              <p className="mono-label text-accent">Results</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                {result.summary.total} policies scored
+              </h2>
+            </div>
             <button
               type="button"
               onClick={downloadResults}
-              className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-line-strong px-5 py-2.5 text-sm font-semibold text-text transition-colors hover:border-accent/50 hover:text-accent"
             >
-              ⬇ Download CSV
+              <DownloadSimple size={16} weight="bold" />
+              Download CSV
             </button>
           </div>
 
           {/* Summary cards */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-medium text-zinc-500">Low risk</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{result.summary.risk_counts.Low}</p>
-            </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-medium text-zinc-500">Medium risk</p>
-              <p className="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{result.summary.risk_counts.Medium}</p>
-            </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-medium text-zinc-500">High risk</p>
-              <p className="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">{result.summary.risk_counts.High}</p>
-            </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-medium text-zinc-500">Avg premium</p>
-              <p className="mt-1 text-2xl font-bold">{formatEuro(result.summary.avg_premium)}</p>
-            </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-medium text-zinc-500">Premium range</p>
-              <p className="mt-1 text-sm font-bold">
-                {formatEuro(result.summary.min_premium)} – {formatEuro(result.summary.max_premium)}
-              </p>
-            </div>
+          <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
+            {[
+              { label: "Low risk", value: String(result.summary.risk_counts.Low), color: "text-low" },
+              { label: "Medium risk", value: String(result.summary.risk_counts.Medium), color: "text-medium" },
+              { label: "High risk", value: String(result.summary.risk_counts.High), color: "text-high" },
+              { label: "Avg premium", value: formatINR(result.summary.avg_premium), color: "text-text" },
+              { label: "Premium range", value: `${formatINR(result.summary.min_premium)} – ${formatINR(result.summary.max_premium)}`, color: "text-text" },
+            ].map((card) => (
+              <div key={card.label} className="rounded-2xl border border-line bg-surface p-5">
+                <p className="mono-label text-faint">{card.label}</p>
+                <p className={`mt-2 font-mono text-xl font-semibold sm:text-2xl ${card.color}`}>
+                  {card.value}
+                </p>
+              </div>
+            ))}
           </div>
 
           {/* Table */}
-          <div className="mt-6 overflow-x-auto rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="mt-8 overflow-x-auto rounded-2xl border border-line bg-surface">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+              <thead className="border-b border-line bg-ink-2">
                 <tr>
-                  <th className="px-4 py-3">ID</th>
-                  <th className="px-4 py-3">Frequency</th>
-                  <th className="px-4 py-3">Severity</th>
-                  <th className="px-4 py-3">Expected loss</th>
-                  <th className="px-4 py-3">Final premium</th>
-                  <th className="px-4 py-3">Risk</th>
+                  {["ID", "Frequency", "Severity", "Expected loss", "Final premium", "Risk"].map((heading) => (
+                    <th key={heading} className="mono-label px-5 py-4 font-medium text-faint">
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {result.policies.map((policy, index) => (
-                  <tr key={index} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
-                    <td className="px-4 py-3 font-mono text-xs">{policy.IDpol ?? index + 1}</td>
-                    <td className="px-4 py-3">{policy.predicted_annual_frequency.toFixed(4)}</td>
-                    <td className="px-4 py-3">{formatEuro(policy.predicted_claim_severity)}</td>
-                    <td className="px-4 py-3">{formatEuro(policy.expected_loss)}</td>
-                    <td className="px-4 py-3 font-semibold">{formatEuro(policy.final_premium)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISK_STYLES[policy.risk_category]}`}>
+                  <tr key={index} className="border-b border-line last:border-0 hover:bg-surface-2/60">
+                    <td className="px-5 py-3.5 font-mono text-xs text-faint">{policy.IDpol ?? index + 1}</td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-muted">
+                      {policy.predicted_annual_frequency.toFixed(4)}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-muted">
+                      {formatINR(policy.predicted_claim_severity)}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-muted">
+                      {formatINR(policy.expected_loss)}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-sm font-semibold text-text">
+                      {formatINR(policy.final_premium)}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`rounded-full border px-2.5 py-0.5 font-mono text-[11px] font-semibold ${RISK_STYLES[policy.risk_category]}`}>
                         {policy.risk_category}
                       </span>
                     </td>
@@ -335,6 +364,13 @@ export default function BulkUploadPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="mt-6 flex items-center gap-2.5 rounded-lg border border-low/25 bg-low/10 px-4 py-3">
+            <CheckCircle size={18} weight="duotone" className="shrink-0 text-low" />
+            <p className="text-xs leading-relaxed text-muted">
+              Scored by the deployed Poisson + Gamma models on 783,573 policies.
+            </p>
           </div>
         </div>
       )}

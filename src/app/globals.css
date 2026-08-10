@@ -1,26 +1,192 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ---------------------------------------------------------------------------
+   Design tokens — "Actuarial Precision"
+   Deep ink surfaces + a single emerald accent. Mono type for data.
+--------------------------------------------------------------------------- */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--ink);
+  --color-foreground: var(--text);
+
+  --color-ink: #0a0e0c;
+  --color-ink-2: #0e1411;
+  --color-surface: #111713;
+  --color-surface-2: #161e19;
+  --color-surface-3: #1c2620;
+
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
+
+  --color-text: #edf2ef;
+  --color-muted: #8ca09a;
+  --color-faint: #5c6f68;
+
+  --color-accent: #2ee6a8;
+  --color-accent-strong: #1fc98f;
+  --color-accent-dim: rgba(46, 230, 168, 0.12);
+
+  --color-low: #2ee6a8;
+  --color-medium: #f5b84b;
+  --color-high: #f26d5b;
+
+  --font-sans: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --ink: #0a0e0c;
+  --text: #edf2ef;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(46, 230, 168, 0.28);
+  color: #f2fff9;
+}
+
+/* Thin, dark scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--ink);
+}
+::-webkit-scrollbar-thumb {
+  background: #22302a;
+  border-radius: 8px;
+  border: 2px solid var(--ink);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2c3d35;
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities
+--------------------------------------------------------------------------- */
+
+@utility hairline {
+  border: 1px solid var(--color-line);
+}
+
+@utility hairline-t {
+  border-top: 1px solid var(--color-line);
+}
+
+@utility hairline-b {
+  border-bottom: 1px solid var(--color-line);
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility mono-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Blueprint grid backdrop for hero / sections */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Soft radial emerald glow */
+@utility bg-glow {
+  background:
+    radial-gradient(ellipse 60% 50% at 70% 20%, rgba(46, 230, 168, 0.09), transparent 60%),
+    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(46, 230, 168, 0.05), transparent 60%);
+}
+
+/* Double-bezel card: outer shell + inner core */
+@utility bezel {
+  border-radius: 1.5rem;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.03) 40%,
+    rgba(255, 255, 255, 0.06)
+  );
+}
+
+@utility bezel-inner {
+  border-radius: calc(1.5rem - 1px);
+  background: var(--color-surface);
+}
+
+/* ---------------------------------------------------------------------------
+   Motion
+--------------------------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(46, 230, 168, 0.5);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 6px rgba(46, 230, 168, 0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade {
+  animation: fade 0.9s ease both;
+}
+
+.pulse-dot {
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-rise,
+  .animate-fade,
+  .pulse-dot {
+    animation: none;
+  }
 }

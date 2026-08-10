@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const grotesk = Space_Grotesk({
+  variable: "--font-grotesk",
   subsets: ["latin"],
 });
 
@@ -14,26 +15,40 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Motor Insurance Pricing",
-  description: "AI-driven motor insurance premium pricing — fair, personalized, actuarially sound.",
+  title: "Actuaris — AI Motor Insurance Pricing",
+  description:
+    "Frequency × severity actuarial pricing. Fair, personalized motor insurance premiums in INR, powered by 783k policies.",
 };
 
 function Navbar() {
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
-      <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
-            MI
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-5">
+      <nav className="pointer-events-auto flex w-full max-w-5xl items-center justify-between rounded-full border border-line bg-ink-2/80 px-5 py-2.5 shadow-[0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        <Link href="/" className="group flex items-center gap-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-accent/40 bg-accent-dim font-mono text-xs font-bold text-accent transition-colors group-hover:border-accent/70">
+            A
           </span>
-          <span className="text-zinc-900 dark:text-zinc-50">Motor Insurance Pricing</span>
+          <span className="text-[15px] font-semibold tracking-tight text-text">
+            Actuaris
+          </span>
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/quote/bulk"
+            className="hidden rounded-full px-4 py-2 text-sm font-medium text-muted transition-colors hover:text-text sm:block"
+          >
+            Bulk upload
+          </Link>
           <Link
             href="/quote"
-            className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            className="group flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-ink transition-all hover:bg-accent-strong active:scale-[0.97]"
           >
-            Get a Quote
+            Get a quote
+            <ArrowRight
+              size={14}
+              weight="bold"
+              className="transition-transform group-hover:translate-x-0.5"
+            />
           </Link>
         </div>
       </nav>
@@ -41,17 +56,19 @@ function Navbar() {
   );
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="flex min-h-full flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
+    <html lang="en" className={`${grotesk.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col bg-ink text-text">
         <Navbar />
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-zinc-200 py-6 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-          AI-driven motor insurance pricing · Frequency × Severity modeling
+        <footer className="hairline-t">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 sm:flex-row">
+            <p className="mono-label text-faint">Actuaris · Frequency × Severity</p>
+            <p className="font-mono text-xs text-faint">
+              783,573 policies · 46,090 claims · INR
+            </p>
+          </div>
         </footer>
       </body>
     </html>
