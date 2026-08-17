@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PYTHON_API_BASE = process.env.PYTHON_API_BASE ?? "http://127.0.0.1:8000";
+function pythonApiBase(): string {
+  return process.env.PYTHON_API_BASE ?? "http://127.0.0.1:8000";
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const base = pythonApiBase();
     const body = await request.json();
-    const response = await fetch(`${PYTHON_API_BASE}/predict/batch`, {
+    const response = await fetch(`${base}/predict/batch`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -17,12 +20,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data, { status: response.status });
     }
     return NextResponse.json(data);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         error:
           "Could not reach the pricing backend. Is the Python API running? " +
-          `(expected at ${PYTHON_API_BASE})`,
+          `(expected at ${pythonApiBase()})`,
       },
       { status: 502 }
     );

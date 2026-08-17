@@ -7,13 +7,30 @@ import {
   DownloadSimple,
   UploadSimple,
 } from "@phosphor-icons/react";
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { predictBatch } from "@/lib/api";
+import { csvToPolicies, REQUIRED_COLUMNS } from "@/lib/csv";
 import type { BatchPredictionResponse, PolicyInput } from "@/lib/types";
 
-const REQUIRED_COLUMNS = [
-  "Exposure", "VehPower", "VehAge", "DrivAge", "BonusMalus",
-  "VehBrand", "VehGas", "Area", "Density", "Region",
-];
+/** One-line definition for each required CSV column (mirrors the single-form helpers). */
+const COLUMN_GLOSSARY: Record<string, string> = {
+  Exposure: "How long each policy is in force — usually 1 year.",
+  VehPower: "Insurer's engine power class, 1 to 20.",
+  VehAge: "Age of the insured vehicle in years.",
+  DrivAge: "Age of the main driver at policy start (18–100).",
+  BonusMalus: "Claims history coefficient — 50 is best, 100 is base, higher means recent claims.",
+  VehBrand: "Insurer brand group B1–B14 — groups cars with similar claim profiles.",
+  VehGas: "Fuel type — Regular (petrol) or Diesel.",
+  Area: "How built-up the area is — A is most rural, F is a metro core.",
+  Density: "Population density of the area where the car is kept.",
+  Region: "Geographic rating region from the training dataset.",
+};
+
+const RISK_COLORS: Record<string, string> = {
+  Low: "#2ee6a8",
+  Medium: "#f5b84b",
+  High: "#f26d5b",
+};
 
 const RISK_STYLES: Record<string, string> = {
   Low: "border-low/30 bg-low/10 text-low",
@@ -23,99 +40,6 @@ const RISK_STYLES: Record<string, string> = {
 
 function formatINR(value: number): string {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
-}
-
-/** Minimal CSV parser that handles quoted fields and commas inside quotes. */
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += char;
-      }
-    } else if (char === '"') {
-      inQuotes = true;
-    } else if (char === ",") {
-      row.push(field);
-      field = "";
-    } else if (char === "\n" || char === "\r") {
-      if (char === "\r" && text[i + 1] === "\n") i++;
-      row.push(field);
-      field = "";
-      if (row.some((cell) => cell.trim() !== "")) rows.push(row);
-      row = [];
-    } else {
-      field += char;
-    }
-  }
-  row.push(field);
-  if (row.some((cell) => cell.trim() !== "")) rows.push(row);
-  return rows;
-}
-
-function csvToPolicies(text: string): { policies: PolicyInput[]; errors: string[] } {
-  const rows = parseCsv(text);
-  if (rows.length < 2) {
-    return { policies: [], errors: ["CSV must contain a header row and at least one data row."] };
-  }
-
-  const header = rows[0].map((cell) => cell.trim());
-  const missing = REQUIRED_COLUMNS.filter((column) => !header.includes(column));
-  if (missing.length > 0) {
-    return {
-      policies: [],
-      errors: [`CSV is missing required columns: ${missing.join(", ")}`],
-    };
-  }
-
-  const policies: PolicyInput[] = [];
-  const errors: string[] = [];
-
-  for (let i = 1; i < rows.length; i++) {
-    const values = rows[i];
-    const record: Record<string, string> = {};
-    header.forEach((column, index) => {
-      record[column] = (values[index] ?? "").trim();
-    });
-
-    const policy: PolicyInput = {
-      Exposure: parseFloat(record.Exposure),
-      VehPower: parseInt(record.VehPower, 10),
-      VehAge: parseInt(record.VehAge, 10),
-      DrivAge: parseInt(record.DrivAge, 10),
-      BonusMalus: parseInt(record.BonusMalus, 10),
-      VehBrand: record.VehBrand,
-      VehGas: record.VehGas,
-      Area: record.Area,
-      Density: parseInt(record.Density, 10),
-      Region: record.Region,
-    };
-
-    if (record.IDpol) policy.IDpol = parseInt(record.IDpol, 10);
-
-    const invalid = Object.entries(policy).some(
-      ([key, value]) => typeof value === "number" && Number.isNaN(value)
-    );
-    if (invalid) {
-      errors.push(`Row ${i + 1}: contains non-numeric values.`);
-      continue;
-    }
-    policies.push(policy);
-  }
-
-  return { policies, errors };
 }
 
 export default function BulkUploadPage() {
@@ -198,6 +122,19 @@ export default function BulkUploadPage() {
           </code>
           . <code className="rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-accent">IDpol</code> is optional.
         </p>
+
+        {/* Column glossary */}
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <p className="mono-label text-faint">What each column means</p>
+          <dl className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+            {REQUIRED_COLUMNS.map((column) => (
+              <div key={column} className="flex items-baseline gap-3">
+                <dt className="shrink-0 font-mono text-xs font-semibold text-accent">{column}</dt>
+                <dd className="text-xs leading-relaxed text-muted">{COLUMN_GLOSSARY[column]}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </div>
 
       {/* Upload card */}
@@ -325,6 +262,53 @@ export default function BulkUploadPage() {
                 </p>
               </div>
             ))}
+          </div>
+
+          {/* Risk distribution chart */}
+          <div className="mt-8 rounded-2xl border border-line bg-surface p-5 sm:p-6">
+            <p className="mono-label text-faint">Risk distribution</p>
+            <div className="mt-4 h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={["Low", "Medium", "High"].map((category) => ({
+                    category,
+                    count: result.summary.risk_counts[category as keyof typeof result.summary.risk_counts],
+                  }))}
+                  margin={{ top: 8, right: 8, bottom: 0, left: -18 }}
+                >
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis
+                    dataKey="category"
+                    tick={{ fill: "#8ca09a", fontSize: 12, fontFamily: "var(--font-mono)" }}
+                    axisLine={{ stroke: "rgba(255,255,255,0.12)" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: "#5c6f68", fontSize: 11, fontFamily: "var(--font-mono)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                    contentStyle={{
+                      background: "#161e19",
+                      border: "1px solid rgba(255,255,255,0.16)",
+                      borderRadius: 12,
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 12,
+                      color: "#edf2ef",
+                    }}
+                    labelStyle={{ color: "#8ca09a", marginBottom: 4 }}
+                  />
+                  <Bar dataKey="count" name="Policies" radius={[6, 6, 0, 0]} maxBarSize={56}>
+                    {["Low", "Medium", "High"].map((category) => (
+                      <Cell key={category} fill={RISK_COLORS[category]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Table */}
